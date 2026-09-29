@@ -577,6 +577,7 @@ export function StackBuilder() {
   const [previewLoading, setPreviewLoading] = useState(true);
   const [previewError, setPreviewError] = useState<string>();
   const [preset, setPreset] = useState("");
+  const [categoriesScrollable, setCategoriesScrollable] = useState(false);
 
   const select = (key: keyof Config, value: string) => {
     if (key === "sdk" && value === "58" && packageManager === "yarn") {
@@ -700,6 +701,22 @@ export function StackBuilder() {
       behavior: "auto",
     });
   }, [activeGroup, view]);
+
+  /*
+   * The category strip holds 15 pills and hides its scrollbar, so on a phone most of them sit
+   * off-screen with nothing to indicate the row scrolls. Track whether there is more to reach
+   * and show a fade on the overflowing edge.
+   */
+  useEffect(() => {
+    if (view !== "configure") return;
+    const nav = document.querySelector<HTMLElement>(".builder-tabs");
+    if (!nav) return;
+    const update = () => setCategoriesScrollable(nav.scrollWidth > nav.clientWidth + 4);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, [view]);
 
   function jumpToSection(key: CategoryKey) {
     setActiveGroup(key);
@@ -1036,20 +1053,22 @@ export function StackBuilder() {
             </section>
           ) : (
             <>
-              <nav className="builder-tabs" aria-label="Stack categories">
-                {categories.map((group) => (
-                  <button
-                    type="button"
-                    key={group.key}
-                    data-section={group.key}
-                    data-active={activeGroup === group.key}
-                    aria-pressed={activeGroup === group.key}
-                    onClick={() => jumpToSection(group.key)}
-                  >
-                    {group.label}
-                  </button>
-                ))}
-              </nav>
+              <div className="builder-tabs-wrap" data-scrollable={categoriesScrollable}>
+                <nav className="builder-tabs" aria-label="Stack categories">
+                  {categories.map((group) => (
+                    <button
+                      type="button"
+                      key={group.key}
+                      data-section={group.key}
+                      data-active={activeGroup === group.key}
+                      aria-pressed={activeGroup === group.key}
+                      onClick={() => jumpToSection(group.key)}
+                    >
+                      {group.label}
+                    </button>
+                  ))}
+                </nav>
+              </div>
               <div className="builder-sections">
                 {categories.map((category) => {
                   const group = groups.find((item) => item.key === category.key);

@@ -735,7 +735,6 @@ html > body[data-scroll-locked] {
   cursor: pointer;
   font: inherit;
 }
-
 /*
  * Most builder controls set `border: 0; background: transparent`, which leaves the UA default
  * ring as the only focus indicator — and it disappears entirely against the tinted active state.
@@ -927,6 +926,34 @@ html > body[data-scroll-locked] {
 .preview-tree::-webkit-scrollbar,
 .preview-code-scroll::-webkit-scrollbar {
   display: none;
+}
+
+/*
+ * The category strip is 15 pills wide. On narrow viewports most of them are off-screen and the
+ * hidden scrollbar left no hint that the row scrolled at all, so the strip now carries a fade on
+ * whichever edge has more content, and the active pill is always scrolled into view.
+ */
+.builder-tabs {
+  position: relative;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-inline: 1rem;
+}
+.builder-tabs-wrap {
+  position: relative;
+}
+.builder-tabs-wrap::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  right: 0;
+  width: 2.5rem;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(to left, var(--color-fd-background), transparent);
+  transition: opacity 180ms ease;
+}
+.builder-tabs-wrap[data-scrollable="true"]::after {
+  opacity: 1;
 }
 .builder-tabs button {
   flex: 0 0 auto;
@@ -1228,14 +1255,50 @@ html > body[data-scroll-locked] {
   .console-grid {
     grid-template-columns: 1fr;
   }
+  /*
+   * On a phone the configurator is the point of the page, so it comes first and the command
+   * plus summary follow. Previously the sidebar rendered first and pushed the option cards
+   * roughly a screen down, so a visitor had to scroll past a wall of chrome before they could
+   * change a single setting.
+   */
   .builder-layout {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
   }
+
+  /*
+   * Flex items default to `min-width: auto`, so a column flex container stretches its children to
+   * their max-content width instead of the viewport. The option grid then laid out at 1245px on a
+   * 390px screen. Both children need `min-width: 0` to actually be constrained.
+   */
+  .builder-main,
   .builder-sidebar {
+    min-width: 0;
+  }
+
+  /*
+   * `align-self: start` (from the desktop rule) makes a column flex item size to its content
+   * instead of the container, so it kept the 1277px max-content width. Stretch restores the
+   * viewport width, and `min-width: 0` stops the content re-inflating it.
+   */
+  .builder-main {
+    order: 1;
+    align-self: stretch;
+    width: 100%;
+  }
+
+  .builder-sidebar {
+    order: 2;
     position: static;
     max-height: none;
     border-right: 0;
-    border-bottom: 1px solid var(--color-fd-border);
+    border-top: 1px solid var(--color-fd-border);
+  }
+
+  /* One scrollport on a phone, not a page inside a page. */
+  .builder-main[data-view="configure"] {
+    max-height: none;
+    overflow-y: visible;
   }
   .preview-workspace {
     grid-template-columns: minmax(12rem, 0.7fr) minmax(0, 1.3fr);
@@ -1616,19 +1679,27 @@ html > body[data-scroll-locked] {
     cursor: pointer;
   }
 
+  /*
+   * The tab switch and the category strip stay reachable while the option cards scroll.
+   * `top: 60px` was measured against the viewport while the nearest scrollport was
+   * `.builder-main`, which pinned both bars 60px down and left a strip of content visible
+   * above them. The offset is now 0 because the page itself is the scrollport here.
+   */
   .builder-page .builder-view-tabs {
     position: sticky;
-    top: 60px;
-    z-index: 5;
+    top: 0;
+    z-index: 6;
     background: var(--color-fd-background);
   }
 
   .builder-page .builder-tabs {
-    top: calc(60px + 2.8rem);
+    top: 2.8rem;
+    z-index: 5;
+    background: var(--color-fd-background);
   }
 
   .builder-page .builder-section {
-    scroll-margin-top: 160px;
+    scroll-margin-top: 7rem;
   }
 }
 
